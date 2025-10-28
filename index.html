@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Сыто kitchen</title>
+  <style>
+    :root{
+      --off-black:#1F2421;
+      --dark-olive:#4B5311;
+      --olive-metallic:#4A4F39;
+      --dark-wood:#3E2F23;
+      --accent:#D4AF37;
+      --text:#f5f5f5;
+      --header-h:72px; /* буде перезаписано JS під реальну висоту */ /* трішки збільшив фактичну висоту */
+    }
+
+    html{scroll-behavior:smooth;}
+    *{box-sizing:border-box;}
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:var(--off-black);
+      color:var(--text);
+    }
+
+    /* ===== Header ===== */
+    header{
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      height:var(--header-h);
+      background:var(--dark-wood);
+      border-bottom:none;
+    }
+    .header-inner{
+      max-width:1100px; margin:0 auto; height:100%;
+      padding:12px 22px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    }
+    .brand h1{margin:0; color:var(--accent); font-size:22px; letter-spacing:.5px;}
+
+    nav ul{list-style:none; display:flex; gap:12px; margin:0; padding:0; flex-wrap:wrap;}
+    nav a{display:inline-block; padding:8px 12px; border-radius:10px; text-decoration:none; color:#fff; font-weight:600; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08);} 
+    nav a:hover{background:rgba(255,255,255,0.15);} 
+    .btn{background:var(--dark-olive); color:#fff; padding:10px 16px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;} 
+    .btn:hover{background:var(--olive-metallic);} 
+
+    /* контент не заходить під фіксовану шапку */
+    main{ margin:0; padding:0; } 
+    /* якорі не ховаються під шапку під час скролу */
+    .hero, .section{scroll-margin-top:calc(var(--header-h) + 14px);} 
+
+    /* ===== Hero ===== */
+    .hero{position:relative; text-align:left; min-height:calc(100vh - var(--header-h)); margin-top:var(--header-h); overflow:hidden; display:flex; align-items:center;}
+    .hero-slide{position:absolute; inset:0; background-repeat:no-repeat; background-position:center top; background-size:cover; opacity:0; transition:opacity 1s ease-in-out;}
+    .hero-slide.active{opacity:1;}
+
+    .hero-mask{position:absolute; inset:0; background:linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.25) 40%, rgba(0,0,0,0) 70%); z-index:1;}
+    .hero-content{position:relative; z-index:2; max-width:1100px; margin:0 auto; width:100%; padding:20px;}
+    .hero h2, .hero p{text-shadow:0 2px 10px rgba(0,0,0,.65);} 
+    .hero h2{font-size:clamp(32px,5vw,56px); font-weight:800; margin:0 0 14px 0;} 
+    .hero p{font-size:clamp(16px,2.2vw,22px); line-height:1.6; max-width:min(860px,92%);} 
+
+    /* ===== Sections ===== */
+    .section{padding:60px 20px; max-width:1000px; margin:auto;}
+    .section h3{text-align:center; font-size:2em; color:var(--accent); margin-bottom:24px;}
+
+    .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;}
+    .card{background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);} 
+    .card h4{margin:0 0 8px; color:var(--accent);} 
+    .muted{color:#e7d6c8; opacity:.95;} 
+
+    footer{text-align:center; background:var(--dark-wood); color:var(--accent); padding:15px;}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand"><h1>Сыто kitchen</h1></div>
+      <nav aria-label="Главное меню">
+        <ul>
+          <li><a href="#home">Главная</a></li>
+          <li><a href="#about">О нас</a></li>
+          <li><a href="#delivery">Доставка</a></li>
+          <li><a href="#contact">Контакты</a></li>
+          <li><a class="btn" href="#order">Заказать</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="home">
+    <section class="hero" aria-label="Слайдер с фото">
+      <!-- 2 слайда: міняються кожні 4с, без кнопок -->
+      <div class="hero-slide active" style="background-image:url('photo_main1.jpg');"></div>
+      <div class="hero-slide" style="background-image:url('photo_main2.jpg');"></div>
+      <div class="hero-mask" aria-hidden="true"></div>
+
+      <div class="hero-content">
+        <h2>Куры гриль и свежая домашняя кухня</h2>
+        <p>
+          Мы готовим каждый день из свежих продуктов: куры гриль, мясо, гарниры и салаты. Всё просто и вкусно — как дома. Доставка осуществляется через Яндекс Еду.
+        </p>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <h3>О нас</h3>
+      <p style="text-align:left; font-size:18px; line-height:1.8; max-width:860px; margin:0 auto;">
+        <strong>Сыто kitchen</strong> — домашняя кухня с акцентом на качество и стабильный вкус. Мы закупаем продукты небольшими партиями, чтобы они всегда оставались свежими. Мясо маринуем и готовим на гриле, гарниры и салаты делаем заранее небольшими партиями и предлагаем в течение дня.
+      </p>
+      <p style="text-align:left; font-size:18px; line-height:1.8; max-width:860px; margin:18px auto 0;">
+        Наше меню простое и понятное: куры гриль с золотистой корочкой, ароматные мясные блюда, сытные гарниры и свежие салаты. Каждый день мы стараемся готовить так, чтобы у вас всегда был выбор вкусных и домашних блюд для обеда или ужина. Мы ценим ваше время и хотим, чтобы еда радовала вас и вашу семью.
+      </p>
+    </section>
+
+    <section id="delivery" class="section" style="background: rgba(0,0,0,0.15);">
+      <h3>Доставка</h3>
+      <div class="grid">
+        <div class="card">
+          <h4>Яндекс Еда</h4>
+          <p class="muted">Быстрая и удобная доставка — горячие блюда приезжают в термоупаковке.</p>
+        </div>
+        <div class="card">
+          <h4>Самовывоз</h4>
+          <p class="muted">Сделайте заказ заранее и заберите без ожидания.</p>
+        </div>
+        <div class="card">
+          <h4>Оплата</h4>
+          <p class="muted">Наличные, карта или онлайн-оплата.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="order" class="section">
+      <h3>Сделать заказ</h3>
+      <p style="text-align:center; max-width:720px; margin:0 auto 18px;" class="muted">
+        Выбирайте блюда в приложении «Яндекс Еда» или свяжитесь с нами — мы соберём заказ для вас.
+      </p>
+      <div style="text-align:center; margin-top:8px;">
+        <a class="btn" href="#contact">Связаться</a>
+      </div>
+    </section>
+
+    <section id="contact" class="section" style="background:#1F2421;">
+      <h3>Контакты</h3>
+      <p style="text-align:center; font-size:18px;">📍 Санкт-Петербург, Кудрово, ул. Строителей, 16</p>
+      <p style="text-align:center; font-size:18px;">📞 +7 (000) 000-00-00</p>
+      <p style="text-align:center; font-size:18px;">🕒 Ежедневно 10:00 — 22:00</p>
+      <div style="margin-top:20px; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,0.12);">
+        <iframe title="Yandex Map — Санкт-Петербург, Кудрово, ул. Строителей, 16" src="https://yandex.com/map-widget/v1/?mode=search&z=15&text=%D0%A1%D0%B0%D0%BD%D0%BA%D1%82-%D0%9F%D0%B5%D1%82%D0%B5%D1%80%D0%B1%D1%83%D1%80%D0%B3%2C%20%D0%9A%D1%83%D0%B4%D1%80%D0%BE%D0%B2%D0%BE%2C%20%D1%83%D0%BB%D0%B8%D1%86%D0%B0%20%D0%A1%D1%82%D1%80%D0%BE%D0%B8%D1%82%D0%B5%D0%BB%D0%B5%D0%B9%2C%2016" width="100%" height="430" frameborder="0" allowfullscreen></iframe>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2025 Сыто kitchen. Все права защищены.</footer>
+
+  <script>
+    // Автослайд із двох фото без кнопок
+    const slides = document.querySelectorAll('.hero-slide');
+    let index = 0;
+    function show(i){ slides.forEach((s,k)=>s.classList.toggle('active', k===i)); }
+    function next(){ index = (index + 1) % slides.length; show(index); }
+    setInterval(next, 4000);
+  </script>
+  <script>
+    // Виставляємо змінну --header-h під реальну висоту шапки, щоб не було зазору/полоси
+    const hdr = document.querySelector('header');
+    function syncHeaderHeight(){
+      const h = hdr ? hdr.offsetHeight : 0;
+      document.documentElement.style.setProperty('--header-h', h + 'px');
+    }
+    window.addEventListener('load', syncHeaderHeight);
+    window.addEventListener('resize', syncHeaderHeight);
+  </script>
+</body>
+</html>
