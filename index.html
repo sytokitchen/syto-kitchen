@@ -86,9 +86,92 @@
     @media (max-width: 540px){
       .text-box{max-width:92%; padding:14px 16px;}
     }
+
+
+
+    /* =========================================== */
+    /*                MODAL WINDOW                 */
+    /* =========================================== */
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    .modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      position: relative;
+      aspect-ratio: 1 / 1.414; /* A4 */
+      width: min(70vw, 70vh * 0.707);
+      max-width: 95vw;
+      max-height: 95vh;
+      background: #000;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    }
+
+    .modal-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+    }
+    .modal-close:hover {
+      background: rgba(0,0,0,0.75);
+    }
+
+    @media (max-width: 600px) {
+      .modal-content {
+        width: 95vw;
+        height: 95vh;
+      }
+      .modal-close {
+        width: 36px;
+        height: 36px;
+        font-size: 22px;
+      }
+    }
+
   </style>
 </head>
 <body>
+
+  <!-- ====================== MODAL ====================== -->
+  <div id="info-modal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close">×</button>
+      <img src="banner.jpg" class="modal-image" alt="Информация">
+    </div>
+  </div>
+  <!-- ================================================== -->
+
+
   <header>
     <div class="header-inner">
       <div class="brand"><h1>Сыто kitchen</h1></div>
@@ -104,6 +187,7 @@
   </header>
 
   <main id="home">
+    
     <section class="hero" aria-label="Главное фото">
       <figure class="hero-figure">
         <img src="photo_main1.jpg" alt="Главное фото">
@@ -129,7 +213,7 @@
         Мы ценим ваше время и хотим, чтобы еда радовала вас и вашу семью.
       </p>
     </section>
-    
+
     <section id="contact" class="section" style="background:#1F2421;">
       <h3>Контакты</h3>
       <p style="text-align:center; font-size:18px;">📍 Санкт-Петербург, Кудрово, ул. Строителей, 16</p>
@@ -143,7 +227,10 @@
 
   <footer>© 2025 Сыто kitchen. Все права защищены.</footer>
 
+
+  <!-- ====================== JS ====================== -->
   <script>
+    /** Header sync **/
     const hdr = document.querySelector('header');
     function syncHeaderHeight(){
       const h = hdr ? hdr.offsetHeight : 0;
@@ -152,10 +239,11 @@
     window.addEventListener('load', syncHeaderHeight);
     window.addEventListener('resize', syncHeaderHeight);
 
+
+    /** Navigation **/
     const nav = document.querySelector('header nav');
     const btn = document.querySelector('.menu-toggle');
     const links = nav.querySelectorAll('a');
-
     function closeMenu(){ nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -165,6 +253,21 @@
     document.addEventListener('click', e => { if(!nav.contains(e.target)) closeMenu(); });
     document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
     links.forEach(link => link.addEventListener('click', closeMenu));
+
+
+    /** ================= Modal ================= **/
+    const modal = document.getElementById("info-modal");
+    const closeBtn = modal.querySelector(".modal-close");
+
+    function openModal() { modal.classList.add("show"); }
+    function closeModal() { modal.classList.remove("show"); }
+
+    closeBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", e => { if(e.target === modal) closeModal(); });
+
+    // Показывать каждый заход
+    openModal();
   </script>
+
 </body>
 </html>
