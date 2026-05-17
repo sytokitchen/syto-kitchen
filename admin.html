@@ -1,366 +1,1334 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Syto Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f5f5f5;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background: #f5f5f5;
     }
-    .container {
-      max-width: 1200px;
-      margin: 20px auto;
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 200px;
+      min-width: 200px;
+      background: #2c3e50;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #sidebar h2 {
       padding: 20px;
-      background-color: #fff;
+      font-size: 18px;
+      border-bottom: 1px solid #3d5166;
+      letter-spacing: 0.5px;
+    }
+
+    #sidebar nav {
+      flex: 1;
+      padding-top: 8px;
+    }
+
+    #sidebar nav a {
+      display: block;
+      padding: 14px 20px;
+      color: #cdd3d8;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-size: 15px;
+    }
+
+    #sidebar nav a:hover {
+      background: #3d5166;
+      color: #fff;
+    }
+
+    #sidebar nav a.active {
+      background: #3d5166;
+      color: #fff;
+      font-weight: 600;
+      border-left: 3px solid #4CAF50;
+    }
+
+    /* ── Main content ── */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      background: #f5f5f5;
+    }
+
+    /* ── Section visibility ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Card / Panel ── */
+    .card {
+      background: #fff;
       border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      margin-bottom: 24px;
     }
-    h1 {
-      text-align: center;
+
+    .card h3 {
+      margin-bottom: 16px;
+      font-size: 16px;
+      color: #2c3e50;
     }
+
+    /* ── Form grid ── */
+    .product-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 7px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #333;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      background: #4CAF50;
+      color: #fff;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.88; }
+
+    .btn-danger {
+      background: #f44336;
+      color: #fff;
+      padding: 5px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: opacity 0.15s;
+    }
+
+    .btn-danger:hover { opacity: 0.85; }
+
+    .btn-secondary {
+      background: #607d8b;
+      color: #fff;
+      padding: 8px 18px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: opacity 0.15s;
+    }
+
+    .btn-secondary:hover { opacity: 0.85; }
+
+    .btn-edit {
+      background: #2196F3;
+      color: #fff;
+      padding: 5px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: opacity 0.15s;
+    }
+
+    .btn-edit:hover { opacity: 0.85; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: flex-end;
+    }
+
+    .filter-bar .form-group {
+      min-width: 140px;
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      font-size: 14px;
     }
-    table th, table td {
-      padding: 12px;
+
+    table thead tr {
+      background: #2c3e50;
+      color: #fff;
+    }
+
+    table thead th {
+      padding: 10px 12px;
       text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    .btn {
-      padding: 8px 16px;
-      border: none;
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .btn-danger {
-      background-color: #f44336;
-    }
-    .form-container{
-      margin-bottom: 20px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    .form-row-top{
-      display: grid;
-      grid-template-columns: 1fr 5fr;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .form-row-bottom{
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(120px, max-content);
-      gap: 10px;
-      align-items: center;
-      width: 100%;
-    }
-
-    .form-row-bottom > *{
-      min-width: 0;
-    }
-
-    .form-row-bottom input,
-    .form-row-bottom select{
-      width: 100%;
-    }
-
-    .form-row-bottom .btn{
+      font-weight: 500;
       white-space: nowrap;
     }
 
-    @media (max-width: 1100px){
-      .form-row-bottom{
-        grid-template-columns: repeat(3, minmax(160px, 1fr));
-      }
+    table tbody tr:nth-child(even) {
+      background: #f9f9f9;
     }
 
-    @media (max-width: 600px){
-      .form-row-top{
-        grid-template-columns: 1fr;
-      }
-      .form-row-bottom{
-        grid-template-columns: 1fr;
-      }
+    table tbody tr:hover {
+      background: #eef5fb;
     }
-    img {
-      width: 100px;
-      height: auto;
-      border-radius: 8px;
+
+    table tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    .td-actions {
+      display: flex;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .td-ellip {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Page heading ── */
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+
+    /* ── Checkbox cell ── */
+    .check-yes { color: #4CAF50; font-weight: 700; }
+    .check-no  { color: #f44336; }
+
+    /* ── Category form (simple 2-col) ── */
+    .cat-form-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+
+    .cat-form-row .form-group {
+      min-width: 160px;
+    }
+
+    /* ── Access denied ── */
+    #access-denied {
+      padding: 40px;
+      text-align: center;
+      color: #f44336;
+      font-size: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Admin Panel - Menu Management</h1>
 
-    <!-- Form to add a new product -->
-    <div class="form-container">
+<!-- Sidebar -->
+<div id="sidebar">
+  <h2>Syto Admin</h2>
+  <nav>
+    <a id="nav-products"   onclick="showSection('products')">Товары</a>
+    <a id="nav-categories" onclick="showSection('categories')">Категории</a>
+    <a id="nav-orders"     onclick="showSection('orders')">Заказы</a>
+    <a id="nav-excel"      onclick="showSection('excel')">Excel</a>
+    <a id="nav-removed"    onclick="showSection('removed')">Удалённые</a>
+  </nav>
+</div>
 
-      <div class="form-row-top">
-        <input type="text" id="name" placeholder="Product Name" />
-        <input type="text" id="description" placeholder="Description" />
-      </div>
+<!-- Main -->
+<div id="main">
 
-      <div class="form-row-bottom">
-        <input type="number" id="price" placeholder="Price" />
+  <!-- ══════════════ PRODUCTS SECTION ══════════════ -->
+  <div id="section-products" class="section">
+    <div class="page-title">Товары</div>
 
-        <select id="price_unit">
-          <option value="100 г" selected>Цена за: 100 г</option>
-          <option value="г">Цена за: г</option>
-          <option value="кг">Цена за: кг</option>
-          <option value="мл">Цена за: мл</option>
-          <option value="л">Цена за: л</option>
-          <option value="шт">Цена за: шт</option>
-          <option value="порц.">Цена за: порц.</option>
-        </select>
+    <!-- Add / Edit form -->
+    <div class="card">
+      <h3 id="product-form-title">Добавить товар</h3>
+      <form id="product-form" onsubmit="submitProductForm(event)">
+        <div class="product-form-grid">
 
-        <input type="file" id="photo" />
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Название *</label>
+            <input type="text" id="p-name" required placeholder="Название товара" />
+          </div>
 
-        <select id="is_set">
-          <option value="true">Is Set: Yes</option>
-          <option value="false">Is Set: No</option>
-        </select>
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Описание</label>
+            <textarea id="p-description" placeholder="Описание товара"></textarea>
+          </div>
 
-        <select id="show_on_site">
-          <option value="true">Show on Site: Yes</option>
-          <option value="false">Show on Site: No</option>
-        </select>
+          <div class="form-group">
+            <label>Цена *</label>
+            <input type="number" id="p-price" step="0.01" min="0" required placeholder="0.00" />
+          </div>
 
-        <select id="is_available">
-          <option value="true">Available: Yes</option>
-          <option value="false">Available: No</option>
-        </select>
+          <div class="form-group">
+            <label>Единица цены</label>
+            <input type="text" id="p-price-unit" placeholder="грн, порция..." />
+          </div>
 
-        <button class="btn" id="addProductBtn">Add Product</button>
-        <button class="btn btn-danger" id="resetBtn">Reset</button>
-      </div>
+          <div class="form-group">
+            <label>Категория</label>
+            <select id="p-category-id">
+              <option value="">— Без категории —</option>
+            </select>
+          </div>
 
+          <div class="form-group">
+            <label>Порядок отображения</label>
+            <input type="number" id="p-display-order" placeholder="0" />
+          </div>
+
+          <div class="form-group">
+            <label>Фото (filename)</label>
+            <input type="text" id="p-photo-filename" placeholder="photo.jpg" />
+          </div>
+
+          <div class="form-group">
+            <label>Это сет?</label>
+            <select id="p-is-set">
+              <option value="false">Нет</option>
+              <option value="true">Да</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Показывать на сайте</label>
+            <select id="p-show-on-site">
+              <option value="true">Да</option>
+              <option value="false">Нет</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Доступен</label>
+            <select id="p-is-available">
+              <option value="true">Да</option>
+              <option value="false">Нет</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="grid-column: span 2">
+            <label>КБЖУ (ккал белки жиры углеводы через пробел)</label>
+            <input id="p-nutrition" type="text" placeholder="525.5 25.5 25.5 25.5">
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn" id="product-submit-btn">Добавить товар</button>
+          <button type="button" class="btn-secondary" onclick="resetProductForm()">Сбросить</button>
+        </div>
+      </form>
     </div>
 
-    <div id="editPreview" style="margin-top: 10px;"></div>
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="form-group">
+        <label>Поиск по названию</label>
+        <input type="text" id="filter-search" placeholder="Поиск..." oninput="applyFilters()" />
+      </div>
+      <div class="form-group">
+        <label>Категория</label>
+        <select id="filter-cat" onchange="applyFilters()">
+          <option value="">Все</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Показывать на сайте</label>
+        <select id="filter-show" onchange="applyFilters()">
+          <option value="">Все</option>
+          <option value="true">Да</option>
+          <option value="false">Нет</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Доступен</label>
+        <select id="filter-avail" onchange="applyFilters()">
+          <option value="">Все</option>
+          <option value="true">Да</option>
+          <option value="false">Нет</option>
+        </select>
+      </div>
+    </div>
 
-    <h2>Product List</h2>
-    <table id="productsTable">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Price</th>
-          <th>Price Unit</th>
-          <th>Is Set</th>
-          <th>Show on Site</th>
-          <th>Is Available</th>
-          <th>Photo</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Product rows will be inserted here -->
-      </tbody>
-    </table>
+    <!-- Products table -->
+    <div class="card">
+      <div class="table-wrap">
+        <table id="products-table" style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col style="width:13%">
+            <col>
+            <col style="width:9%">
+            <col style="width:3%">
+            <col style="width:4%">
+            <col style="width:4%">
+            <col style="width:9%">
+            <col style="width:3%">
+            <col style="width:3%">
+            <col style="width:3%">
+            <col style="width:5%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Описание</th>
+              <th>Категория</th>
+              <th>№</th>
+              <th>Цена</th>
+              <th>Ед.</th>
+              <th>КБЖУ</th>
+              <th>Сет</th>
+              <th>Пок.</th>
+              <th>Дост.</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody">
+            <tr><td colspan="11" style="text-align:center;color:#999;">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <script>
-    const apiUrl = "https://menu.syto-kitchen.workers.dev";
+  <!-- ══════════════ CATEGORIES SECTION ══════════════ -->
+  <div id="section-categories" class="section">
+    <div class="page-title">Категории</div>
 
-    // Read token from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
+    <div class="card">
+      <h3 id="category-form-title">Добавить категорию</h3>
+      <form id="category-form" onsubmit="submitCategoryForm(event)">
+        <div class="cat-form-row">
+          <div class="form-group">
+            <label>Название *</label>
+            <input type="text" id="c-name" required placeholder="Название категории" />
+          </div>
+          <div class="form-group">
+            <label>Порядок отображения</label>
+            <input type="number" id="c-display-order" placeholder="0" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn" id="category-submit-btn">Сохранить</button>
+          <button type="button" class="btn-secondary" onclick="resetCategoryForm()">Сбросить</button>
+        </div>
+      </form>
+    </div>
 
-    // If missing → block access
-    if (!token) {
-        document.body.innerHTML = "<h2 style='text-align:center;color:red;'>Access denied: missing token</h2>";
-        throw new Error("Access denied: no token");
+    <div class="card">
+      <div class="table-wrap">
+        <table id="categories-table">
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Порядок</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="categories-tbody">
+            <tr><td colspan="3" style="text-align:center;color:#999;">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EXCEL SECTION ══════════════ -->
+  <div id="section-excel" class="section">
+    <div class="page-title">Импорт / Экспорт Excel</div>
+
+    <div class="card" style="max-width:560px">
+      <h3 style="margin-bottom:12px">Экспорт меню</h3>
+      <p style="color:#666;font-size:14px;margin-bottom:16px">
+        Скачать все категории и товары в Excel файл с выпадающими списками для удобного редактирования.
+      </p>
+      <button class="btn" onclick="exportToExcel()" id="export-btn">⬇ Скачать Excel</button>
+    </div>
+
+    <div class="card" style="max-width:560px;margin-top:16px">
+      <h3 style="margin-bottom:12px">Импорт меню</h3>
+      <p style="color:#666;font-size:14px;margin-bottom:8px">
+        Загрузите отредактированный Excel файл. Товары сопоставляются по названию:
+      </p>
+      <ul style="color:#666;font-size:13px;margin-bottom:16px;padding-left:20px;line-height:1.8">
+        <li>Название есть в файле и в БД → <b>обновить</b></li>
+        <li>Название только в файле → <b>добавить</b></li>
+        <li>Название только в БД → <b>удалить</b></li>
+      </ul>
+      <input type="file" id="import-file" accept=".xlsx,.xls" style="margin-bottom:12px;display:block">
+      <button class="btn" onclick="importFromExcel()" id="import-btn">⬆ Импортировать</button>
+      <div id="import-result" style="margin-top:14px;font-size:14px;white-space:pre-line"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REMOVED PRODUCTS SECTION ══════════════ -->
+  <div id="section-removed" class="section">
+    <div class="page-title">Удалённые при импорте товары</div>
+
+    <div class="filter-bar">
+      <div class="form-group">
+        <label>Поиск по названию</label>
+        <input type="text" id="rm-search" placeholder="Поиск..." oninput="applyRemovedFilters()" />
+      </div>
+      <div class="form-group">
+        <label>Категория</label>
+        <select id="rm-cat" onchange="applyRemovedFilters()">
+          <option value="">Все</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Дата удаления от</label>
+        <input type="date" id="rm-date-from" onchange="applyRemovedFilters()" />
+      </div>
+      <div class="form-group">
+        <label>Дата удаления до</label>
+        <input type="date" id="rm-date-to" onchange="applyRemovedFilters()" />
+      </div>
+      <div class="form-group" style="justify-content:flex-end">
+        <button class="btn-secondary" onclick="fetchRemovedProducts()" style="margin-top:18px">Обновить</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col style="width:16%">
+            <col style="width:14%">
+            <col>
+            <col style="width:7%">
+            <col style="width:8%">
+            <col style="width:8%">
+            <col style="width:8%">
+            <col style="width:14%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Категория</th>
+              <th>Описание</th>
+              <th>Цена</th>
+              <th>Ед.</th>
+              <th>КБЖУ</th>
+              <th>Пок./Дост.</th>
+              <th>Удалён</th>
+            </tr>
+          </thead>
+          <tbody id="removed-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#999;">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ ORDERS SECTION ══════════════ -->
+  <div id="section-orders" class="section">
+    <div class="page-title">Заказы</div>
+
+    <div class="filter-bar">
+      <div class="form-group">
+        <label>Поиск (имя, телефон, ID)</label>
+        <input type="text" id="ord-search" placeholder="Поиск..." oninput="applyOrderFilters()" />
+      </div>
+      <div class="form-group">
+        <label>Статус оплаты</label>
+        <select id="ord-status" onchange="applyOrderFilters()">
+          <option value="">Все</option>
+          <option value="pending">Ожидает</option>
+          <option value="confirmed">Оплачен</option>
+          <option value="rejected">Отклонён</option>
+          <option value="canceled">Отменён</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Дата от</label>
+        <input type="date" id="ord-date-from" onchange="applyOrderFilters()" />
+      </div>
+      <div class="form-group">
+        <label>Дата до</label>
+        <input type="date" id="ord-date-to" onchange="applyOrderFilters()" />
+      </div>
+      <div class="form-group" style="justify-content:flex-end">
+        <button class="btn-secondary" onclick="fetchOrders()" style="margin-top:18px">Обновить</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col style="width:14%">
+            <col style="width:13%">
+            <col style="width:11%">
+            <col style="width:17%">
+            <col style="width:10%">
+            <col style="width:8%">
+            <col style="width:8%">
+            <col style="width:9%">
+            <col style="width:10%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Заказ ID</th>
+              <th>Имя</th>
+              <th>Адрес</th>
+              <th>Время</th>
+              <th>Итого</th>
+              <th>Доставка</th>
+              <th>Статус</th>
+              <th>Телефон</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr><td colspan="9" style="text-align:center;color:#999;">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#main -->
+
+<script>
+  /* ─────────────────────────────────────────
+     Config & state
+  ───────────────────────────────────────── */
+  const apiUrl = 'https://menu.syto-kitchen.workers.dev';
+
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+
+  if (!token) {
+    document.getElementById('sidebar').style.display = 'none';
+    document.getElementById('main').innerHTML =
+      '<div id="access-denied">Доступ запрещён. Укажите ?token= в URL.</div>';
+    throw new Error('No token provided');
+  }
+
+  let categoriesMap  = {};   // id -> name
+  let allProducts    = [];
+  let allCategories  = [];
+
+  let editingProductId  = null;
+  let editingCategoryId = null;
+
+  /* ─────────────────────────────────────────
+     Section navigation
+  ───────────────────────────────────────── */
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.remove('active'));
+
+    document.getElementById('section-' + name).classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+
+    if (name === 'removed') fetchRemovedProducts();
+    if (name === 'orders')  fetchOrders();
+  }
+
+  /* ─────────────────────────────────────────
+     Helpers
+  ───────────────────────────────────────── */
+  function boolVal(val) {
+    return val === true || val === 1 || val === '1' || val === 'true';
+  }
+
+  function checkMark(val) {
+    return boolVal(val)
+      ? '<span class="check-yes">&#10003;</span>'
+      : '<span class="check-no">&#10007;</span>';
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /* ─────────────────────────────────────────
+     Categories API
+  ───────────────────────────────────────── */
+  async function fetchCategories() {
+    try {
+      const res  = await fetch(`${apiUrl}/api/categories`);
+      const data = await res.json();
+      allCategories = Array.isArray(data) ? data : (data.categories || []);
+      categoriesMap = {};
+      allCategories.forEach(c => { categoriesMap[c.id] = c.name; });
+    } catch (e) {
+      console.error('fetchCategories error', e);
+      allCategories = [];
     }
+  }
 
-    // Function to fetch and display products
-    async function fetchProducts() {
-      const response = await fetch(`${apiUrl}/api/products?token=${token}`);
-      const products = await response.json();
-      
-      const productsTable = document.querySelector("#productsTable tbody");
-      productsTable.innerHTML = ""; // Clear the table before adding new rows
+  function populateCategoryFilters() {
+    // Product form select
+    const pSel = document.getElementById('p-category-id');
+    pSel.innerHTML = '<option value="">— Без категории —</option>';
+    allCategories.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      pSel.appendChild(opt);
+    });
 
-      products.forEach(product => {
-        const row = document.createElement("tr");
-        
-        row.innerHTML = `
-          <td>${product.name}</td>
-          <td>${product.description}</td>
-          <td>${product.price}</td>
-          <td>${product.price_unit}</td>
-          <td>${product.is_set ? "Yes" : "No"}</td>
-          <td>${product.show_on_site ? "Yes" : "No"}</td>
-          <td>${product.is_available ? "Yes" : "No"}</td>
-          <td><img src="${product.photo_url}" alt="Product Image" /></td>
-          <td>
-            <button class="btn" onclick="editProduct(${product.id})">Edit</button>
-            <button class="btn btn-danger" onclick="deleteProduct(${product.id})">Delete</button>
-          </td>
-        `;
-        
-        productsTable.appendChild(row);
-      });
+    // Filter bar select
+    const fSel = document.getElementById('filter-cat');
+    fSel.innerHTML = '<option value="">Все</option>';
+    allCategories.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      fSel.appendChild(opt);
+    });
+  }
+
+  function fetchCategoriesTable() {
+    const tbody = document.getElementById('categories-tbody');
+    if (!allCategories.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;">Нет категорий</td></tr>';
+      return;
     }
+    tbody.innerHTML = allCategories.map(c => `
+      <tr>
+        <td>${escHtml(c.name)}</td>
+        <td>${c.display_order != null ? c.display_order : ''}</td>
+        <td class="td-actions">
+          <button class="btn-edit" onclick="editCategory(${c.id})">Изменить</button>
+          <button class="btn-danger" onclick="deleteCategory(${c.id})">Удалить</button>
+        </td>
+      </tr>
+    `).join('');
+  }
 
-    // Function to add a new product
-    async function addProduct() {
-      const name = document.getElementById("name").value;
-      const description = document.getElementById("description").value;
-      const price = document.getElementById("price").value;
-      const priceUnit = document.getElementById("price_unit").value;
-      const photo = document.getElementById("photo").files[0];
-      const isSet = document.getElementById("is_set").value === "true";
-      const showOnSite = document.getElementById("show_on_site").value === "true";
-      const isAvailable = document.getElementById("is_available").value === "true";
+  async function submitCategoryForm(e) {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('name', document.getElementById('c-name').value.trim());
+    const order = document.getElementById('c-display-order').value;
+    if (order !== '') fd.append('display_order', order);
 
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("price", price);
-      formData.append("price_unit", priceUnit);
-      formData.append("is_set", isSet);
-      formData.append("show_on_site", showOnSite);
-      formData.append("is_available", isAvailable);
-      formData.append("photo", photo); // Add the image file
-
-      const response = await fetch(`${apiUrl}/api/product?token=${token}`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert("Product added successfully!");
-        resetForm();
-        fetchProducts(); // Refresh product list
+    try {
+      let res;
+      if (editingCategoryId !== null) {
+        res = await fetch(`${apiUrl}/api/category/${editingCategoryId}?token=${token}`, { method: 'PUT', body: fd });
       } else {
-        alert("Failed to add product.");
+        res = await fetch(`${apiUrl}/api/category?token=${token}`, { method: 'POST', body: fd });
       }
+      if (!res.ok) throw new Error(await res.text());
+      resetCategoryForm();
+      await fetchCategories();
+      populateCategoryFilters();
+      fetchCategoriesTable();
+    } catch (err) {
+      alert('Ошибка: ' + err.message);
     }
+  }
 
-    // Function to delete a product
-    async function deleteProduct(id) {
-      const response = await fetch(`${apiUrl}/api/product/${id}?token=${token}`, {
-        method: "DELETE",
-      });
+  function editCategory(id) {
+    const cat = allCategories.find(c => c.id === id);
+    if (!cat) return;
+    editingCategoryId = id;
+    document.getElementById('c-name').value          = cat.name || '';
+    document.getElementById('c-display-order').value = cat.display_order != null ? cat.display_order : '';
+    document.getElementById('category-form-title').textContent  = 'Изменить категорию';
+    document.getElementById('category-submit-btn').textContent  = 'Обновить категорию';
+    document.getElementById('c-name').focus();
+  }
 
-      if (response.ok) {
-        alert("Product deleted successfully!");
-        fetchProducts(); // Refresh product list
+  async function deleteCategory(id) {
+    if (!confirm('Удалить категорию?')) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/category/${id}?token=${token}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      await fetchCategories();
+      populateCategoryFilters();
+      fetchCategoriesTable();
+    } catch (err) {
+      alert('Ошибка: ' + err.message);
+    }
+  }
+
+  function resetCategoryForm() {
+    editingCategoryId = null;
+    document.getElementById('category-form').reset();
+    document.getElementById('category-form-title').textContent = 'Добавить категорию';
+    document.getElementById('category-submit-btn').textContent = 'Сохранить';
+  }
+
+  /* ─────────────────────────────────────────
+     Products API
+  ───────────────────────────────────────── */
+  async function fetchProducts() {
+    const tbody = document.getElementById('products-tbody');
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;">Загрузка...</td></tr>';
+    try {
+      const res  = await fetch(`${apiUrl}/api/products?token=${token}`);
+      const data = await res.json();
+      allProducts = Array.isArray(data) ? data : (data.products || []);
+      applyFilters();
+    } catch (e) {
+      console.error('fetchProducts error', e);
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#f44336;">Ошибка загрузки товаров</td></tr>';
+    }
+  }
+
+  function renderProductsTable(list) {
+    const tbody = document.getElementById('products-tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;">Нет товаров</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(p => `
+      <tr>
+        <td class="td-ellip">${escHtml(p.name || '')}</td>
+        <td class="td-ellip" title="${escHtml(p.description || '')}">${escHtml(p.description || '')}</td>
+        <td class="td-ellip">${escHtml(categoriesMap[p.category_id] || (p.category_id ? '#' + p.category_id : '—'))}</td>
+        <td>${p.display_order != null ? p.display_order : ''}</td>
+        <td>${p.price != null ? p.price : ''}</td>
+        <td>${escHtml(p.price_unit || '')}</td>
+        <td style="font-size:11px;color:#999;">${escHtml(p.nutrition || '')}</td>
+        <td>${checkMark(p.is_set)}</td>
+        <td>${checkMark(p.show_on_site)}</td>
+        <td>${checkMark(p.is_available)}</td>
+        <td>
+          <button class="btn-edit" onclick="editProduct(${p.id})" title="Изменить" style="padding:3px 7px;font-size:13px;">✎</button>
+          <button class="btn-danger" onclick="deleteProduct(${p.id})" title="Удалить" style="padding:3px 7px;font-size:13px;">✕</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  /* Filter elements (resolved after DOM is ready) */
+  const filterSearch = document.getElementById('filter-search');
+  const filterCat    = document.getElementById('filter-cat');
+  const filterShow   = document.getElementById('filter-show');
+  const filterAvail  = document.getElementById('filter-avail');
+
+  function applyFilters() {
+    const search = filterSearch.value.toLowerCase();
+    const cat    = filterCat.value;
+    const show   = filterShow.value;   // '' | 'true' | 'false'
+    const avail  = filterAvail.value;
+
+    const filtered = allProducts.filter(p => {
+      if (search && !((p.name || '').toLowerCase().includes(search))) return false;
+      if (cat    && String(p.category_id) !== cat)                    return false;
+      if (show  !== '' && String(!!p.show_on_site)  !== show)         return false;
+      if (avail !== '' && String(!!p.is_available)  !== avail)        return false;
+      return true;
+    });
+    renderProductsTable(filtered);
+  }
+
+  /* Build FormData for product */
+  function buildProductFormData() {
+    const fd = new FormData();
+    fd.append('name',         document.getElementById('p-name').value.trim());
+    fd.append('description',  document.getElementById('p-description').value.trim());
+    fd.append('price',        document.getElementById('p-price').value);
+    fd.append('price_unit',   document.getElementById('p-price-unit').value.trim());
+    fd.append('is_set',       document.getElementById('p-is-set').value);
+    fd.append('show_on_site', document.getElementById('p-show-on-site').value);
+    fd.append('is_available', document.getElementById('p-is-available').value);
+
+    const catId = document.getElementById('p-category-id').value;
+    if (catId) fd.append('category_id', catId);
+
+    const order = document.getElementById('p-display-order').value;
+    if (order !== '') fd.append('display_order', order);
+
+    const photo = document.getElementById('p-photo-filename').value.trim();
+    if (photo) fd.append('photo_filename', photo);
+
+    const nutrition = document.getElementById('p-nutrition').value.trim();
+    if (nutrition) fd.append('nutrition', nutrition);
+
+    return fd;
+  }
+
+  function validateNutrition(val) {
+    if (!val) return true; // пустое — ОК
+    const parts = val.split(/\s+/);
+    if (parts.length !== 4) return false;
+    return parts.every(p => /^\d+([.,]\d+)?$/.test(p));
+  }
+
+  async function submitProductForm(e) {
+    e.preventDefault();
+    const nutritionVal = document.getElementById('p-nutrition').value.trim();
+    if (nutritionVal && !validateNutrition(nutritionVal)) {
+      alert('КБЖУ: укажите 4 числа через пробел.\nПример: 525.5 25.5 25.5 25.5');
+      return;
+    }
+    const fd = buildProductFormData();
+    try {
+      let res;
+      if (editingProductId !== null) {
+        res = await fetch(`${apiUrl}/api/product/${editingProductId}?token=${token}`, { method: 'PUT', body: fd });
       } else {
-        alert("Failed to delete product.");
+        res = await fetch(`${apiUrl}/api/product?token=${token}`, { method: 'POST', body: fd });
       }
+      if (!res.ok) throw new Error(await res.text());
+      resetProductForm();
+      await fetchProducts();
+    } catch (err) {
+      alert('Ошибка: ' + err.message);
     }
+  }
 
-    // Function to edit a product
-    async function editProduct(id) {
-      const response = await fetch(`${apiUrl}/api/product/${id}?token=${token}`);
-      const product = await response.json();
+  async function editProduct(id) {
+    try {
+      const res  = await fetch(`${apiUrl}/api/product/${id}?token=${token}`);
+      const data = await res.json();
+      const p    = data.product || data;
 
-      // Fill the form with the current product data
-      document.getElementById("name").value = product.name;
-      document.getElementById("description").value = product.description;
-      document.getElementById("price").value = product.price;
-      document.getElementById("price_unit").value = product.price_unit;
-      document.getElementById("is_set").value = String(!!product.is_set);
-      document.getElementById("show_on_site").value = String(!!product.show_on_site);
-      document.getElementById("is_available").value = String(!!product.is_available);
-      
-      // Show the current product image
-      const productImage = document.createElement("img");
-      productImage.src = product.photo_url;
-      productImage.alt = "Product Image";
-      productImage.style.width = "100px";
-      const preview = document.getElementById("editPreview");
-      preview.innerHTML = "";
-      preview.appendChild(productImage);
+      editingProductId = id;
 
-      // Change the button action to update
-      const button = document.getElementById("addProductBtn");
-      button.textContent = "Update Product";
-      button.onclick = () => updateProduct(id);
+      document.getElementById('p-name').value           = p.name           || '';
+      document.getElementById('p-description').value    = p.description    || '';
+      document.getElementById('p-price').value          = p.price          != null ? p.price : '';
+      document.getElementById('p-price-unit').value     = p.price_unit     || '';
+      document.getElementById('p-display-order').value  = p.display_order  != null ? p.display_order : '';
+      document.getElementById('p-photo-filename').value = p.photo_url || '';
+      document.getElementById('p-nutrition').value      = p.nutrition || '';
+      document.getElementById('p-is-set').value         = boolVal(p.is_set)       ? 'true' : 'false';
+      document.getElementById('p-show-on-site').value   = boolVal(p.show_on_site) ? 'true' : 'false';
+      document.getElementById('p-is-available').value   = boolVal(p.is_available) ? 'true' : 'false';
+
+      const catSel = document.getElementById('p-category-id');
+      catSel.value = p.category_id ? String(p.category_id) : '';
+
+      document.getElementById('product-form-title').textContent = 'Изменить товар';
+      document.getElementById('product-submit-btn').textContent = 'Обновить товар';
+
+      document.getElementById('product-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      alert('Ошибка загрузки товара: ' + err.message);
     }
+  }
 
-    // Function to update a product
-    async function updateProduct(id) {
-      const name = document.getElementById("name").value;
-      const description = document.getElementById("description").value;
-      const price = document.getElementById("price").value;
-      const priceUnit = document.getElementById("price_unit").value;
-      const photo = document.getElementById("photo").files[0];
-      const isSet = document.getElementById("is_set").value === "true";
-      const showOnSite = document.getElementById("show_on_site").value === "true";
-      const isAvailable = document.getElementById("is_available").value === "true";
+  async function deleteProduct(id) {
+    if (!confirm('Удалить товар?')) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/product/${id}?token=${token}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      await fetchProducts();
+    } catch (err) {
+      alert('Ошибка: ' + err.message);
+    }
+  }
 
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("price", price);
-      formData.append("price_unit", priceUnit);
-      formData.append("is_set", isSet);
-      formData.append("show_on_site", showOnSite);
-      formData.append("is_available", isAvailable);
-      if (photo) {
-        formData.append("photo", photo);
+  function resetProductForm() {
+    editingProductId = null;
+    document.getElementById('product-form').reset();
+    // Explicitly restore select defaults after form.reset()
+    document.getElementById('p-is-set').value       = 'false';
+    document.getElementById('p-show-on-site').value = 'true';
+    document.getElementById('p-is-available').value = 'true';
+    document.getElementById('p-category-id').value  = '';
+    document.getElementById('product-form-title').textContent = 'Добавить товар';
+    document.getElementById('product-submit-btn').textContent = 'Добавить товар';
+  }
+
+  /* ─────────────────────────────────────────
+     Excel Export
+  ───────────────────────────────────────── */
+  async function exportToExcel() {
+    const btn = document.getElementById('export-btn');
+    btn.disabled = true; btn.textContent = 'Загрузка...';
+    try {
+      const res  = await fetch(`${apiUrl}/api/export?token=${token}`);
+      const data = await res.json();
+
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Категории
+      const catData = [['Название', 'Порядок']];
+      for (const c of data.categories) catData.push([c.name, c.display_order]);
+      const wsCat = XLSX.utils.aoa_to_sheet(catData);
+      wsCat['!cols'] = [{wch: 30}, {wch: 10}];
+      XLSX.utils.book_append_sheet(wb, wsCat, 'Категории');
+
+      // Sheet 2: Товары
+      const headers = ['Категория','Название','Описание','Цена','Единица','На сайте','Доступен','Сет','Порядок','Калории','БЖУ','Фото'];
+      const prodData = [headers];
+      for (const p of data.products) {
+        let calories = '', bju = '';
+        if (p.nutrition) {
+          const parts = String(p.nutrition).trim().split(/\s+/);
+          calories = parts[0] || '';
+          bju = parts.slice(1).join(' ');
+        }
+        prodData.push([
+          p.category_name || '', p.name, p.description || '',
+          p.price, p.price_unit || '100 г',
+          p.show_on_site ? 'да' : 'нет',
+          p.is_available ? 'да' : 'нет',
+          p.is_set ? 'да' : 'нет',
+          p.display_order, calories, bju, p.photo_url || ''
+        ]);
+      }
+      const wsProd = XLSX.utils.aoa_to_sheet(prodData);
+      wsProd['!cols'] = [{wch:20},{wch:30},{wch:40},{wch:8},{wch:10},{wch:10},{wch:10},{wch:6},{wch:10},{wch:10},{wch:20},{wch:25}];
+
+      XLSX.utils.book_append_sheet(wb, wsProd, 'Товары');
+
+      // Inject dataValidations via JSZip (SheetJS CE doesn't write them)
+      const maxRow = Math.max(data.products.length + 50, 200);
+      const catCount = data.categories.length;
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const zip = await JSZip.loadAsync(wbout);
+
+      // sheet2.xml = Товары (sheet order: 1=Категории, 2=Товары)
+      let sheetXml = await zip.file('xl/worksheets/sheet2.xml').async('text');
+
+      const dv = (sqref, formula1) =>
+        `<dataValidation type="list" allowBlank="1" showDropDown="0" showErrorMessage="1" errorStyle="stop" ` +
+        `errorTitle="Недопустимое значение" error="Выберите значение из списка" sqref="${sqref}">` +
+        `<formula1>${formula1}</formula1></dataValidation>`;
+
+      const dvXml =
+        `<dataValidations count="5">` +
+        dv(`A2:A${maxRow}`, `OFFSET(Категории!$A$2,0,0,COUNTA(Категории!$A:$A)-1,1)`) +
+        dv(`E2:E${maxRow}`, `"100 г,шт,порция"`) +
+        dv(`F2:F${maxRow}`, `"да,нет"`) +
+        dv(`G2:G${maxRow}`, `"да,нет"`) +
+        dv(`H2:H${maxRow}`, `"да,нет"`) +
+        `</dataValidations>`;
+
+      sheetXml = sheetXml.replace('</worksheet>', dvXml + '</worksheet>');
+      zip.file('xl/worksheets/sheet2.xml', sheetXml);
+
+      const finalBuf = await zip.generateAsync({ type: 'arraybuffer' });
+      const blob = new Blob([finalBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'syto-menu.xlsx'; a.click();
+      URL.revokeObjectURL(url);
+
+      // Отправить в Telegram (не блокируем загрузку — fire & forget)
+      try {
+        const tgForm = new FormData();
+        tgForm.append('file', blob, 'syto-menu.xlsx');
+        await fetch(`${apiUrl}/api/export-notify?token=${token}`, { method: 'POST', body: tgForm });
+      } catch (tgErr) {
+        console.warn('Telegram notify failed:', tgErr);
+      }
+    } catch(e) {
+      alert('Ошибка экспорта: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '⬇ Скачать Excel';
+    }
+  }
+
+  /* ─────────────────────────────────────────
+     Excel Import
+  ───────────────────────────────────────── */
+  async function importFromExcel() {
+    const file = document.getElementById('import-file').files[0];
+    if (!file) { alert('Выберите файл'); return; }
+
+    const btn = document.getElementById('import-btn');
+    const resultEl = document.getElementById('import-result');
+    btn.disabled = true; btn.textContent = 'Импорт...';
+    resultEl.textContent = '';
+
+    try {
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab);
+
+      // Parse categories
+      const wsCat = wb.Sheets['Категории'];
+      if (!wsCat) throw new Error('Лист "Категории" не найден');
+      const catRows = XLSX.utils.sheet_to_json(wsCat, { header: 1 });
+      const categories = [];
+      for (let i = 1; i < catRows.length; i++) {
+        const row = catRows[i];
+        if (!row[0]) continue;
+        categories.push({ name: String(row[0]).trim(), display_order: Number(row[1]) || 100000 });
       }
 
-      const response = await fetch(`${apiUrl}/api/product/${id}?token=${token}`, {
-        method: "PUT",
-        body: formData,
+      // Parse products
+      const wsProd = wb.Sheets['Товары'];
+      if (!wsProd) throw new Error('Лист "Товары" не найден');
+      const prodRows = XLSX.utils.sheet_to_json(wsProd, { header: 1 });
+      const products = [];
+      for (let i = 1; i < prodRows.length; i++) {
+        const r = prodRows[i];
+        if (!r[1]) continue;
+        products.push({
+          category_name: String(r[0] || '').trim(),
+          name:          String(r[1]).trim(),
+          description:   String(r[2] || '').trim(),
+          price:         parseFloat(r[3]) || 0,
+          price_unit:    String(r[4] || '100 г').trim(),
+          show_on_site:  String(r[5]).toLowerCase() === 'да',
+          is_available:  String(r[6]).toLowerCase() === 'да',
+          is_set:        String(r[7]).toLowerCase() === 'да',
+          display_order: parseInt(r[8]) || 10000000,
+          calories:      String(r[9] || '').trim(),
+          bju:           String(r[10] || '').trim(),
+          photo_url:     String(r[11] || '').trim() || null,
+        });
+      }
+
+      if (categories.length === 0) throw new Error('Нет категорий в файле');
+      if (products.length === 0)   throw new Error('Нет товаров в файле');
+
+      const res    = await fetch(`${apiUrl}/api/import?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories, products }),
       });
+      const result = await res.json();
 
-      if (response.ok) {
-        alert("Product updated successfully!");
-        resetForm();
-        fetchProducts(); // Refresh product list
+      if (result.ok) {
+        const s = result.stats;
+        resultEl.style.color = '#27ae60';
+        resultEl.textContent =
+          `✅ Импорт завершён!\n\n` +
+          `Категории: +${s.added_cats} добавлено, ✏️ ${s.updated_cats} обновлено, 🗑️ ${s.deleted_cats} удалено\n` +
+          `Товары:    +${s.added_prods} добавлено, ✏️ ${s.updated_prods} обновлено, 🗑️ ${s.deleted_prods} удалено`;
+        fetchCategories().then(() => { populateCategoryFilters(); fetchProducts(); fetchCategoriesTable(); });
       } else {
-        alert("Failed to update product.");
+        throw new Error(result.error || 'Неизвестная ошибка');
       }
-
-      // Reset the form and button
-      document.getElementById("addProductBtn").textContent = "Add Product";
-      document.getElementById("addProductBtn").onclick = addProduct;
+    } catch(e) {
+      resultEl.style.color = '#e74c3c';
+      resultEl.textContent = '❌ Ошибка: ' + e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = '⬆ Импортировать';
     }
+  }
 
-    function resetForm() {
-        document.getElementById("name").value = "";
-        document.getElementById("description").value = "";
-        document.getElementById("price").value = "";
-        document.getElementById("price_unit").value = "100 г";
-        document.getElementById("photo").value = "";
+  /* ─────────────────────────────────────────
+     Orders
+  ───────────────────────────────────────── */
+  let allOrders = [];
 
-        document.getElementById("is_set").value = "false";
-        document.getElementById("show_on_site").value = "true";
-        document.getElementById("is_available").value = "true";
+  const STATUS_LABELS = {
+    pending:   { label: 'Ожидает',  color: '#e67e22' },
+    confirmed: { label: 'Оплачен',  color: '#27ae60' },
+    rejected:  { label: 'Отклонён', color: '#e74c3c' },
+    canceled:  { label: 'Отменён',  color: '#95a5a6' },
+  };
 
-        const button = document.getElementById("addProductBtn");
-        button.textContent = "Add Product";
-        button.onclick = addProduct;
+  async function fetchOrders() {
+    const tbody = document.getElementById('orders-tbody');
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">Загрузка...</td></tr>';
+    try {
+      const search   = document.getElementById('ord-search').value.trim();
+      const status   = document.getElementById('ord-status').value;
+      const dateFrom = document.getElementById('ord-date-from').value;
+      const dateTo   = document.getElementById('ord-date-to').value;
 
-        const oldImage = document.querySelector(".form-container img");
-        if (oldImage) oldImage.remove();
+      const params = new URLSearchParams({ token });
+      if (search)   params.set('search',    search);
+      if (status)   params.set('status',    status);
+      if (dateFrom) params.set('date_from', dateFrom);
+      if (dateTo)   params.set('date_to',   dateTo);
 
-        document.getElementById("editPreview").innerHTML = "";
+      const res  = await fetch(`${apiUrl}/api/orders?${params}`);
+      const data = await res.json();
+      allOrders  = Array.isArray(data) ? data : [];
+      renderOrdersTable(allOrders);
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#f44336;">Ошибка загрузки</td></tr>';
     }
+  }
 
-    // Add event listener to the add product button
-    document.getElementById("addProductBtn").onclick = addProduct;
+  function applyOrderFilters() { fetchOrders(); }
 
-    document.getElementById("resetBtn").addEventListener("click", resetForm);
+  function renderOrdersTable(list) {
+    const tbody = document.getElementById('orders-tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">Нет заказов</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(o => {
+      const dt = o.created_at ? o.created_at.replace('T', ' ').slice(0, 16) : '—';
+      const st = STATUS_LABELS[o.payment_status] || { label: o.payment_status, color: '#999' };
+      const badge = `<span style="background:${st.color};color:#fff;border-radius:10px;padding:2px 8px;font-size:12px;white-space:nowrap">${st.label}</span>`;
+      return `<tr style="cursor:pointer" onclick="toggleOrderDetail(this, ${o.id})" title="Нажмите чтобы раскрыть состав">
+        <td style="font-size:12px">${dt}</td>
+        <td class="td-ellip" style="font-size:11px;color:#666;">${escHtml(o.order_id || '')}</td>
+        <td class="td-ellip">${escHtml(o.name || '—')}</td>
+        <td class="td-ellip" title="${escHtml(o.address || '')}">${escHtml(o.address || '—')}</td>
+        <td style="font-size:12px">${escHtml(o.time_window || '—')}</td>
+        <td><b>${o.total != null ? o.total + ' ₽' : '—'}</b></td>
+        <td>${o.delivery != null ? (o.delivery === 0 ? 'Бесплатно' : o.delivery + ' ₽') : '—'}</td>
+        <td>${badge}</td>
+        <td class="td-ellip">${escHtml(o.phone || '—')}</td>
+      </tr>
+      <tr id="order-detail-${o.id}" style="display:none;background:#f0f7ff">
+        <td colspan="9" style="padding:12px 16px;font-size:13px;white-space:pre-wrap;color:#333;">${buildOrderDetail(o)}</td>
+      </tr>`;
+    }).join('');
+  }
 
-    // Fetch products when the page loads
+  function buildOrderDetail(o) {
+    const lines = [];
+    if (o.items_text) lines.push('📦 Состав:\n' + o.items_text);
+    if (o.comment)    lines.push('💬 Комментарий: ' + o.comment);
+    lines.push(`🍴 Приборы: ${o.cutlery ? 'Да' : 'Нет'}`);
+    if (o.payment_id) lines.push(`🏦 PaymentId: ${o.payment_id}`);
+    return lines.join('\n\n');
+  }
+
+  function toggleOrderDetail(row, id) {
+    const detail = document.getElementById('order-detail-' + id);
+    if (!detail) return;
+    detail.style.display = detail.style.display === 'none' ? 'table-row' : 'none';
+  }
+
+  /* ─────────────────────────────────────────
+     Removed Products
+  ───────────────────────────────────────── */
+  let allRemoved = [];
+
+  async function fetchRemovedProducts() {
+    const tbody = document.getElementById('removed-tbody');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">Загрузка...</td></tr>';
+    try {
+      const res  = await fetch(`${apiUrl}/api/removed-products?token=${token}`);
+      const data = await res.json();
+      allRemoved = Array.isArray(data) ? data : [];
+      populateRemovedCatFilter();
+      applyRemovedFilters();
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#f44336;">Ошибка загрузки</td></tr>';
+    }
+  }
+
+  function populateRemovedCatFilter() {
+    const sel = document.getElementById('rm-cat');
+    const cur = sel.value;
+    const cats = [...new Set(allRemoved.map(r => r.category_name || '').filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">Все</option>' +
+      cats.map(c => `<option value="${escHtml(c)}"${c === cur ? ' selected' : ''}>${escHtml(c)}</option>`).join('');
+  }
+
+  function applyRemovedFilters() {
+    const search   = document.getElementById('rm-search').value.toLowerCase();
+    const cat      = document.getElementById('rm-cat').value;
+    const dateFrom = document.getElementById('rm-date-from').value;
+    const dateTo   = document.getElementById('rm-date-to').value;
+
+    const filtered = allRemoved.filter(r => {
+      if (search && !(r.name || '').toLowerCase().includes(search)) return false;
+      if (cat && (r.category_name || '') !== cat) return false;
+      if (dateFrom && r.removed_at < dateFrom) return false;
+      if (dateTo   && r.removed_at.slice(0, 10) > dateTo) return false;
+      return true;
+    });
+    renderRemovedTable(filtered);
+  }
+
+  function renderRemovedTable(list) {
+    const tbody = document.getElementById('removed-tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">Нет записей</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(r => {
+      const dt = r.removed_at ? r.removed_at.replace('T', ' ').slice(0, 16) : '—';
+      return `<tr>
+        <td class="td-ellip" title="${escHtml(r.name || '')}">${escHtml(r.name || '')}</td>
+        <td class="td-ellip">${escHtml(r.category_name || '—')}</td>
+        <td class="td-ellip" title="${escHtml(r.description || '')}">${escHtml(r.description || '')}</td>
+        <td>${r.price != null ? r.price : ''}</td>
+        <td>${escHtml(r.price_unit || '')}</td>
+        <td style="font-size:11px;color:#999;">${escHtml(r.nutrition || '')}</td>
+        <td>${checkMark(r.show_on_site)} / ${checkMark(r.is_available)}</td>
+        <td style="font-size:12px;color:#888;">${dt}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ─────────────────────────────────────────
+     Init
+  ───────────────────────────────────────── */
+  fetchCategories().then(() => {
+    populateCategoryFilters();
     fetchProducts();
-  </script>
+    fetchCategoriesTable();
+  });
+
+  showSection('products');
+</script>
 </body>
 </html>
