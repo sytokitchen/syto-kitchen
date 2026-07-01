@@ -528,6 +528,25 @@
       <button class="btn" onclick="importFromExcel()" id="import-btn">⬆ Импортировать</button>
       <div id="import-result" style="margin-top:14px;font-size:14px;white-space:pre-line"></div>
     </div>
+
+    <div class="card" style="max-width:560px;margin-top:16px">
+      <h3 style="margin-bottom:12px">Генерация ценников</h3>
+      <p style="color:#666;font-size:14px;margin-bottom:8px">
+        Загрузите Excel файл меню — будут сгенерированы ценники для товаров, у которых "Нужен ценник" = да.
+      </p>
+      <input type="file" id="pricetag-file" accept=".xlsx,.xls" style="margin-bottom:12px;display:block">
+      <button class="btn" onclick="generatePriceTags()" id="pricetag-btn">🏷 Сгенерировать ценники</button>
+    </div>
+
+    <div class="card" style="max-width:560px;margin-top:16px">
+      <h3 style="margin-bottom:12px">Меню напитков (A4)</h3>
+      <p style="color:#666;font-size:14px;margin-bottom:12px">
+        Скачайте шаблон, отредактируйте напитки и цены, затем загрузите для генерации меню.
+      </p>
+      <button class="btn" onclick="downloadDrinksTemplate()" style="margin-bottom:10px">⬇ Скачать шаблон</button>
+      <input type="file" id="drinks-file" accept=".xlsx,.xls" style="margin-bottom:12px;display:block">
+      <button class="btn" onclick="generateDrinksMenu()" id="drinks-btn">📋 Сгенерировать меню напитков</button>
+    </div>
   </div>
 
   <!-- ══════════════ REMOVED PRODUCTS SECTION ══════════════ -->
@@ -1024,7 +1043,7 @@
       XLSX.utils.book_append_sheet(wb, wsCat, 'Категории');
 
       // Sheet 2: Товары
-      const headers = ['Категория','Название','Описание','Цена','Единица','На сайте','Доступен','Сет','Порядок','Калории','БЖУ','Фото'];
+      const headers = ['Категория','Название','Описание','Цена','Единица','На сайте','Доступен','Сет','Порядок','Калории','БЖУ','Фото','Нужен ценник'];
       const prodData = [headers];
       for (const p of data.products) {
         let calories = '', bju = '';
@@ -1039,11 +1058,11 @@
           p.show_on_site ? 'да' : 'нет',
           p.is_available ? 'да' : 'нет',
           p.is_set ? 'да' : 'нет',
-          p.display_order, calories, bju, p.photo_url || ''
+          p.display_order, calories, bju, p.photo_url || '', 'нет'
         ]);
       }
       const wsProd = XLSX.utils.aoa_to_sheet(prodData);
-      wsProd['!cols'] = [{wch:20},{wch:30},{wch:40},{wch:8},{wch:10},{wch:10},{wch:10},{wch:6},{wch:10},{wch:10},{wch:20},{wch:25}];
+      wsProd['!cols'] = [{wch:20},{wch:30},{wch:40},{wch:8},{wch:10},{wch:10},{wch:10},{wch:6},{wch:10},{wch:10},{wch:20},{wch:25},{wch:14}];
 
       XLSX.utils.book_append_sheet(wb, wsProd, 'Товары');
 
@@ -1062,12 +1081,13 @@
         `<formula1>${formula1}</formula1></dataValidation>`;
 
       const dvXml =
-        `<dataValidations count="5">` +
+        `<dataValidations count="6">` +
         dv(`A2:A${maxRow}`, `OFFSET(Категории!$A$2,0,0,COUNTA(Категории!$A:$A)-1,1)`) +
         dv(`E2:E${maxRow}`, `"100 г,шт,порция"`) +
         dv(`F2:F${maxRow}`, `"да,нет"`) +
         dv(`G2:G${maxRow}`, `"да,нет"`) +
         dv(`H2:H${maxRow}`, `"да,нет"`) +
+        dv(`M2:M${maxRow}`, `"да,нет"`) +
         `</dataValidations>`;
 
       sheetXml = sheetXml.replace('</worksheet>', dvXml + '</worksheet>');
@@ -1172,6 +1192,250 @@
       resultEl.textContent = '❌ Ошибка: ' + e.message;
     } finally {
       btn.disabled = false; btn.textContent = '⬆ Импортировать';
+    }
+  }
+
+  /* ─────────────────────────────────────────
+     Price Tags
+  ───────────────────────────────────────── */
+  async function generatePriceTags() {
+    const file = document.getElementById('pricetag-file').files[0];
+    if (!file) { alert('Выберите файл'); return; }
+
+    const btn = document.getElementById('pricetag-btn');
+    btn.disabled = true;
+    btn.textContent = 'Генерация...';
+
+    try {
+      // Parse Excel — sheet 2 (Товары)
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab);
+      const wsProd = wb.Sheets[wb.SheetNames[1]];
+      if (!wsProd) throw new Error('Лист "Товары" не найден');
+
+      const rows = XLSX.utils.sheet_to_json(wsProd, { header: 1 });
+      const items = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r[1]) continue;
+        if (String(r[12] || '').trim().toLowerCase() !== 'да') continue;
+        items.push({
+          name:  String(r[1]).trim(),
+          price: parseFloat(r[3]) || 0,
+          unit:  String(r[4] || '100 г').trim(),
+        });
+      }
+      if (items.length === 0) {
+        alert('Нет товаров с "Нужен ценник" = да');
+        return;
+      }
+
+      // Load DejaVu Sans (supports ₽)
+      btn.textContent = 'Загрузка шрифта...';
+      const fontResp = await fetch('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf');
+      if (!fontResp.ok) throw new Error('Не удалось загрузить шрифт DejaVu Sans');
+      const fontBuf = await fontResp.arrayBuffer();
+      const fontB64 = arrayBufferToBase64(fontBuf);
+
+      // Register font for canvas measureText
+      const ff = new FontFace('DejaVu Sans', `url('data:font/truetype;base64,${fontB64}')`);
+      await ff.load();
+      document.fonts.add(ff);
+
+      // Auto font-size via Canvas API measureText
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const MAX_W = 57 * 96 / 25.4; // 57mm content width in CSS px
+
+      function fitSize(text) {
+        for (let sz = 15; sz >= 8; sz--) {
+          ctx.font = `bold ${sz}px "DejaVu Sans"`;
+          const words = text.split(' ');
+          let lines = 1, line = '';
+          for (const word of words) {
+            const test = line ? line + ' ' + word : word;
+            if (ctx.measureText(test).width > MAX_W) {
+              lines++;
+              line = word;
+              if (lines > 3) break;
+            } else {
+              line = test;
+            }
+          }
+          if (lines <= 3) return sz;
+        }
+        return 8;
+      }
+
+      function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      function nbspBrackets(s) {
+        // spaces inside parentheses → non-breaking
+        return esc(s).replace(/\(([^)]*)\)/g, (_, inner) =>
+          '(' + inner.replace(/ /g, ' ') + ')');
+      }
+
+      // Build tag HTML list
+      const tagHtml = items.map(item => {
+        const sz = fitSize(item.name);
+        return `<div class="tag">` +
+          `<div class="hd"><div class="br">СЫТО</div><div class="sl">Домашняя кухня</div></div>` +
+          `<div class="ln"></div>` +
+          `<div class="nm" style="font-size:${sz}px">${nbspBrackets(item.name)}</div>` +
+          `<div class="ln"></div>` +
+          `<div class="pr">${esc(item.price)}<span class="un"> ₽ / ${esc(item.unit)}</span></div>` +
+          `</div>`;
+      });
+
+      // Group into A4 pages of 15 (3×5)
+      let pagesHtml = '';
+      for (let i = 0; i < tagHtml.length; i += 15)
+        pagesHtml += `<div class="pg">${tagHtml.slice(i, i + 15).join('')}</div>`;
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+@font-face{font-family:'DejaVu Sans';src:url('data:font/truetype;base64,${fontB64}')format('truetype');}
+*{box-sizing:border-box;margin:0;padding:0;}
+@page{size:A4;margin:0;}
+body{font-family:'DejaVu Sans',sans-serif;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+.pg{width:210mm;height:297mm;padding:7mm 7.5mm 16mm;display:grid;grid-template-columns:repeat(3,63mm);grid-template-rows:repeat(5,42mm);column-gap:3mm;row-gap:16mm;page-break-after:always;break-after:page;}
+.tag{width:63mm;height:42mm;border:2px solid #FFD428;background:#FFFEF5;display:flex;flex-direction:column;overflow:hidden;}
+.hd{text-align:center;padding:1.5mm 2mm 1mm;}
+.br{font-weight:bold;font-size:11px;color:#FFD428;letter-spacing:1px;}
+.sl{font-size:7px;color:#999;margin-top:0.5mm;}
+.ln{height:1px;background:#FFD428;flex-shrink:0;}
+.nm{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;padding:1mm 2mm;line-height:1.25;word-break:break-word;}
+.pr{padding:1.5mm 2mm 2mm;text-align:center;font-size:18px;font-weight:bold;color:#111;white-space:nowrap;}
+.un{font-size:9px;font-weight:normal;color:#555;}
+</style></head><body>${pagesHtml}<script>window.onload=function(){window.print();};<\/script></body></html>`;
+
+      const win = window.open('', '_blank');
+      if (!win) { alert('Разрешите всплывающие окна для этой страницы'); return; }
+      win.document.write(html);
+      win.document.close();
+
+    } catch(e) {
+      alert('Ошибка: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🏷 Сгенерировать ценники';
+    }
+  }
+
+  function arrayBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 8192)
+      bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+    return btoa(bin);
+  }
+
+  /* ─────────────────────────────────────────
+     Drinks Menu
+  ───────────────────────────────────────── */
+  function downloadDrinksTemplate() {
+    const data = [
+      ['COFFEE'],
+      ['Название', 'Цена'],
+      ['Эспрессо', 80],
+      ['Американо М', 105],
+      ['Американо L', 115],
+      ['Капучино М', 140],
+      ['Капучино L', 160],
+      ['Латте М', 140],
+      ['Латте L', 160],
+      ['Флэт уайт', 170],
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch: 25}, {wch: 10}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Напитки');
+    XLSX.writeFile(wb, 'drinks-template.xlsx');
+  }
+
+  async function generateDrinksMenu() {
+    const file = document.getElementById('drinks-file').files[0];
+    if (!file) { alert('Выберите файл'); return; }
+
+    const btn = document.getElementById('drinks-btn');
+    btn.disabled = true;
+    btn.textContent = 'Генерация...';
+
+    try {
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab);
+      const ws = wb.Sheets['Напитки'];
+      if (!ws) throw new Error('Лист "Напитки" не найден');
+
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      // Row 0: category name (e.g. "COFFEE"), Row 1: headers, Row 2+: items
+      const category = String(rows[0]?.[0] || 'COFFEE').trim().toUpperCase();
+      const items = [];
+      for (let i = 2; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || !r[0]) continue;
+        items.push({ name: String(r[0]).trim(), price: parseFloat(r[1]) || 0 });
+      }
+      if (items.length === 0) throw new Error('Нет напитков в файле');
+
+      btn.textContent = 'Загрузка шрифта...';
+      const fontResp = await fetch('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf');
+      if (!fontResp.ok) throw new Error('Не удалось загрузить шрифт');
+      const fontBuf = await fontResp.arrayBuffer();
+      const fontB64 = arrayBufferToBase64(fontBuf);
+
+      function e(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }
+
+      const itemsHtml = items.map(item =>
+        `<div class="item"><span class="iname">${e(item.name)}</span><span class="iprice">${e(item.price)} ₽</span></div>`
+      ).join('');
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+@font-face{font-family:'DejaVu Sans';src:url('data:font/truetype;base64,${fontB64}')format('truetype');}
+*{box-sizing:border-box;margin:0;padding:0;}
+@page{size:A4;margin:0;}
+body{font-family:'DejaVu Sans',sans-serif;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+.pg{width:210mm;height:297mm;background:#0e1628;position:relative;overflow:hidden;}
+.b1,.b2{position:absolute;border:1px solid #c9a76e;pointer-events:none;}
+.b1{top:8mm;left:8mm;right:8mm;bottom:8mm;}
+.b2{top:12.5mm;left:12.5mm;right:12.5mm;bottom:12.5mm;}
+.content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:36mm 24mm 22mm;}
+.brand{font-size:34pt;font-weight:bold;color:#c9a76e;letter-spacing:8px;margin-bottom:3mm;text-align:center;}
+.cat{font-size:12pt;color:#c9a76e;letter-spacing:5px;margin-bottom:6mm;text-align:center;}
+.sep{width:52%;height:1px;background:#c9a76e;margin-bottom:9mm;}
+.items{width:100%;flex:1;}
+.item{display:flex;justify-content:space-between;align-items:baseline;padding:3.8mm 0;}
+.iname{font-size:11pt;color:#c9a76e;letter-spacing:0.3px;}
+.iprice{font-size:11pt;color:#c9a76e;white-space:nowrap;margin-left:6mm;}
+.footer{font-size:10pt;color:#c9a76e;letter-spacing:5px;padding-top:6mm;}
+</style></head><body>
+<div class="pg">
+  <div class="b1"></div><div class="b2"></div>
+  <div class="content">
+    <div class="brand">СЫТО</div>
+    <div class="cat">${e(category)}</div>
+    <div class="sep"></div>
+    <div class="items">${itemsHtml}</div>
+    <div class="footer">СЫТО</div>
+  </div>
+</div>
+<script>window.onload=function(){window.print();};<\/script>
+</body></html>`;
+
+      const win = window.open('', '_blank');
+      if (!win) { alert('Разрешите всплывающие окна для этой страницы'); return; }
+      win.document.write(html);
+      win.document.close();
+
+    } catch(e) {
+      alert('Ошибка: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📋 Сгенерировать меню напитков';
     }
   }
 
