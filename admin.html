@@ -1207,18 +1207,30 @@
     btn.textContent = 'Генерация...';
 
     try {
-      // Parse Excel — sheet 2 (Товары)
+      // Parse Excel — sheet "Товары" by name, fallback to index 1
       const ab = await file.arrayBuffer();
       const wb = XLSX.read(ab);
-      const wsProd = wb.Sheets[wb.SheetNames[1]];
+      const prodSheetName = wb.SheetNames.find(n => n.trim() === 'Товары') ?? wb.SheetNames[1];
+      const wsProd = wb.Sheets[prodSheetName];
       if (!wsProd) throw new Error('Лист "Товары" не найден');
 
       const rows = XLSX.utils.sheet_to_json(wsProd, { header: 1 });
+
+      // Find "Нужен ценник" column by header (robust to column shifts on Mac)
+      const headerRow = rows[0] || [];
+      let tagColIdx = 12; // default column M
+      for (let j = 0; j < headerRow.length; j++) {
+        if (String(headerRow[j] || '').toLowerCase().includes('ценник')) {
+          tagColIdx = j;
+          break;
+        }
+      }
+
       const items = [];
       for (let i = 1; i < rows.length; i++) {
         const r = rows[i];
         if (!r[1]) continue;
-        if (String(r[12] || '').trim().toLowerCase() !== 'да') continue;
+        if (String(r[tagColIdx] || '').trim().toLowerCase() !== 'да') continue;
         items.push({
           name:  String(r[1]).trim(),
           price: parseFloat(r[3]) || 0,
@@ -1248,7 +1260,7 @@
       const MAX_W = 57 * 96 / 25.4; // 57mm content width in CSS px
 
       function fitSize(text) {
-        for (let sz = 15; sz >= 8; sz--) {
+        for (let sz = 21; sz >= 9; sz--) {
           ctx.font = `bold ${sz}px "DejaVu Sans"`;
           const words = text.split(' ');
           let lines = 1, line = '';
@@ -1299,14 +1311,14 @@
 @page{size:A4;margin:0;}
 body{font-family:'DejaVu Sans',sans-serif;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
 .pg{width:210mm;height:297mm;padding:7mm 7.5mm 16mm;display:grid;grid-template-columns:repeat(3,63mm);grid-template-rows:repeat(5,42mm);column-gap:3mm;row-gap:16mm;page-break-after:always;break-after:page;}
-.tag{width:63mm;height:42mm;border:2px solid #FFD428;background:#FFFEF5;display:flex;flex-direction:column;overflow:hidden;}
+.tag{width:63mm;height:42mm;border:2px solid #D4A800;background:#111;display:flex;flex-direction:column;overflow:hidden;}
 .hd{text-align:center;padding:1.5mm 2mm 1mm;}
-.br{font-weight:bold;font-size:11px;color:#FFD428;letter-spacing:1px;}
-.sl{font-size:7px;color:#999;margin-top:0.5mm;}
-.ln{height:1px;background:#FFD428;flex-shrink:0;}
-.nm{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;padding:1mm 2mm;line-height:1.25;word-break:break-word;}
-.pr{padding:1.5mm 2mm 2mm;text-align:center;font-size:18px;font-weight:bold;color:#111;white-space:nowrap;}
-.un{font-size:9px;font-weight:normal;color:#555;}
+.br{font-weight:bold;font-size:13px;color:#D4A800;letter-spacing:2px;}
+.sl{font-size:7.5px;color:#777;margin-top:0.5mm;}
+.ln{height:1px;background:#D4A800;flex-shrink:0;margin:0 10mm;}
+.nm{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;padding:1mm 2mm;line-height:1.25;word-break:break-word;color:#fff;}
+.pr{padding:1.5mm 2mm 2mm;text-align:center;font-size:21px;font-weight:bold;color:#fff;white-space:nowrap;}
+.un{font-size:10px;font-weight:normal;color:#bbb;}
 </style></head><body>${pagesHtml}<script>window.onload=function(){window.print();};<\/script></body></html>`;
 
       const win = window.open('', '_blank');
